@@ -1,0 +1,90 @@
+# Kodi Media Center language file
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC Addons\n"
+"Language-Team: English\n"
+"Language: en\n"
+
+msgctxt "#30000"
+msgid "General"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Verify SSL certificate"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Seconds to wait for the saved subtitle to appear"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Enable debug logging"
+msgstr ""
+
+msgctxt "#30007"
+msgid "HolyArrs URL"
+msgstr ""
+
+msgctxt "#30008"
+msgid "HolyArrs API key"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Disable only if HolyArrs uses a self-signed certificate you cannot install"
+msgstr ""
+
+msgctxt "#30014"
+msgid "How long to wait after HolyArrs saves the subtitle before looking for the file next to the video"
+msgstr ""
+
+msgctxt "#30015"
+msgid "Write verbose request/response info to the Kodi log"
+msgstr ""
+
+msgctxt "#30017"
+msgid "Address of your HolyArrs, e.g. https://holyarrs.example.com"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Created in HolyArrs under Settings > API (a key with the all scope)"
+msgstr ""
+
+msgctxt "#32000"
+msgid "Unknown action"
+msgstr ""
+
+msgctxt "#32003"
+msgid "HolyArrs did not save a subtitle file in time"
+msgstr ""
+
+msgctxt "#32005"
+msgid "HolyArrs URL or API key is not configured"
+msgstr ""
+
+msgctxt "#32006"
+msgid "This item was not found in HolyArrs' library"
+msgstr ""
+
+msgctxt "#32007"
+msgid "Could not reach HolyArrs"
+msgstr ""
+
+msgctxt "#32008"
+msgid "HolyArrs has no new subtitle to offer for this item"
+msgstr ""
+
+msgctxt "#32009"
+msgid "HolyArrs refused the API key"
+msgstr ""
+
+msgctxt "#32010"
+msgid "HolyArrs answered with an error (see the Kodi log)"
+msgstr ""
+
+msgctxt "#32011"
+msgid "Replace the existing subtitle?"
+msgstr ""
+
+msgctxt "#32012"
+msgid "HolyArrs does not overwrite a subtitle it did not save. Delete this and save the new one in its place? {0}"
+msgstr ""
