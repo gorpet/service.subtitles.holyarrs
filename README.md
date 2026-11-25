@@ -54,9 +54,9 @@ repository's README), or zip this folder and use *Add-ons -> Install from zip fi
   fails they are written back. Kodi needs write access to the folder (a read-only share cannot do this; the
   add-on logs it and leaves the old subtitle alone).
 - **Local copy for Kodi (1.0.3):** after HolyArrs saves the subtitle, the add-on reads it from the share itself, writes
-  it to `special://temp/service.subtitles.holyarrs/` and hands Kodi that local file. Kodi's own copy of the file
+  it (in chunks, retrying, also with `//` collapsed in the path) to `special://temp/service.subtitles.holyarrs/` and hands Kodi that local file. Kodi's own copy of the file
   from some NFS shares failed ("Saving of subtitle nfs://... to special://temp/... failed"). If the add-on cannot
-  read the file either, it logs why (`Could not copy ... to a local file: ...`) and falls back to the share path.
+  read the file either, it logs why (`Could not copy ... to a local file: read 0 bytes (stat sizes seen: ...)`) and falls back to the share path.
 - **Error messages:** "HolyArrs refused the API key" (401/403), "HolyArrs answered with an error (see the Kodi
   log)" (other HTTP errors, with the status and HolyArrs' message in the log), "Could not reach HolyArrs"
   (connection failures only).

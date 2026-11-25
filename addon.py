@@ -257,25 +257,55 @@ class ActionHandler(object):
             return
         self.add_subtitle_dir_item(self._stage_locally(subtitle_path, name) or subtitle_path)
 
+    def _read_share_file(self, path):
+        """Read a file from the share in chunks (not 'the whole file by its stat size', which Kodi's NFS client can
+        report as 0 right after the file was written). Tries the path as given and with '//' collapsed, a few times."""
+        paths = [path]
+        scheme, sep, rest = path.partition('://')
+        collapsed = scheme + sep + rest.replace('//', '/') if sep else path.replace('//', '/')
+        if collapsed != path:
+            paths.append(collapsed)
+        sizes = []
+        for candidate in paths:
+            for attempt in range(3):
+                try:
+                    size = xbmcvfs.Stat(candidate).st_size()
+                except Exception as exc:  # noqa: BLE001
+                    size = 'unknown ({0})'.format(exc)
+                chunks = []
+                try:
+                    handle = xbmcvfs.File(candidate)
+                    try:
+                        while True:
+                            chunk = handle.readBytes(65536)
+                            if not chunk:
+                                break
+                            chunks.append(bytes(chunk))
+                    finally:
+                        handle.close()
+                except Exception as exc:  # noqa: BLE001
+                    self.log.warning('Read of {0} failed (attempt {1}): {2}'.format(candidate, attempt + 1, exc))
+                data = b''.join(chunks)
+                sizes.append(str(size))
+                self.log.debug('Read {0}: stat size {1}, got {2} bytes (attempt {3})'.format(candidate, size, len(data), attempt + 1))
+                if data:
+                    return data
+                time.sleep(1)
+        raise IOError('read 0 bytes (stat sizes seen: {0}; tried {1})'.format(', '.join(sizes), ', '.join(paths)))
+
     def _stage_locally(self, subtitle_path, name):
         """Copy the saved subtitle from the share to a local folder and hand Kodi THAT path. Kodi copies the file the
         add-on names into its own temp folder, and on some NFS shares that copy fails right after HolyArrs wrote the
-        file ('Saving of subtitle nfs://... to special://temp/... failed'). Reading it here puts the real error in the
+        file ('Saving of subtitle nfs://... to special://temp/... failed'). Reading it here puts the real reason in the
         log, and Kodi then copies a local file. Returns the local path, or '' (Kodi then gets the share path)."""
         try:
             folder = xbmcvfs.translatePath('special://temp/' + __addonid__ + '/')
             xbmcvfs.mkdirs(folder)
             target = folder + name
-            source = xbmcvfs.File(subtitle_path)
-            try:
-                data = source.readBytes()
-            finally:
-                source.close()
-            if not data:
-                raise IOError('read 0 bytes')
+            data = self._read_share_file(subtitle_path)
             out = xbmcvfs.File(target, 'w')
             try:
-                written = out.write(data)
+                written = out.write(bytearray(data))
             finally:
                 out.close()
             if not written:

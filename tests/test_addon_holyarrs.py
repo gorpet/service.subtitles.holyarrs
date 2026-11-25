@@ -170,9 +170,22 @@ class DownloadTests(unittest.TestCase):
     def test_if_the_share_file_cannot_be_read_kodi_gets_the_share_path_and_the_log_says_why(self):
         S.existing = {'/media/movies/Nobody (2021)/Nobody (2021).hr.srt'}
         S.unreadable = {'/media/movies/Nobody (2021)/Nobody (2021).hr.srt'}
-        handler(self.query(), FakeClient()).do()
+        with mock.patch.object(addon.time, 'sleep'):
+            handler(self.query(), FakeClient()).do()
         self.assertEqual(S.items[-1][0], '/media/movies/Nobody (2021)/Nobody (2021).hr.srt')
-        self.assertTrue(any('Could not copy' in m and 'read failed' in m for m in S.log))
+        self.assertTrue(any('failed (attempt' in m and 'read failed' in m for m in S.log))   # why, per attempt
+        self.assertTrue(any('Could not copy' in m for m in S.log))
+
+    def test_a_stale_stat_size_does_not_stop_the_chunked_read(self):
+        share = '/media/movies/Nobody (2021)/Nobody (2021).hr.srt'
+        S.existing = {share}
+        S.stale = {share}
+        S.contents = {share: b'1\n00:00:01,000 --> 00:00:02,000\nHi\n'}
+        with mock.patch.object(addon.time, 'sleep'):
+            handler(self.query(), FakeClient()).do()
+        local = 'special://temp/service.subtitles.holyarrs/Nobody (2021).hr.srt'
+        self.assertEqual(S.items[-1][0], local)
+        self.assertEqual(S.contents[local], S.contents[share])
 
     def test_download_waits_for_the_share_then_gives_up(self):
         c = FakeClient()

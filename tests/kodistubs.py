@@ -21,6 +21,7 @@ class State(object):
     deleted = []        # xbmcvfs.delete calls
     written = []        # xbmcvfs.File(...,'w').write targets
     unreadable = set()  # paths whose xbmcvfs.File read raises
+    stale = set()       # paths whose stat size and whole-file read look empty, but chunked reads work
     contents = {}       # path -> bytes for xbmcvfs.File reads/writes
     playing = {}
     langs = {'croatian': 'hr', 'english': 'en', 'serbian': 'sr', 'bosnian': 'bs'}
@@ -30,7 +31,7 @@ class State(object):
         cls.settings = {'holyarrs_url': 'http://h', 'holyarrs_apikey': 'k', 'verify_ssl': 'true',
                         'download_wait_seconds': '1', 'debug_logging': 'false'}
         cls.notifications, cls.log, cls.items, cls.existing = [], [], [], set()
-        cls.files, cls.deleted, cls.written, cls.contents, cls.unreadable = {}, [], [], {}, set()
+        cls.files, cls.deleted, cls.written, cls.contents, cls.unreadable, cls.stale = {}, [], [], {}, set(), set()
         cls.playing = {'type': 'movie', 'file': '/media/movies/Nobody (2021)/Nobody (2021).mkv',
                        'title': 'Nobody', 'year': 2021, 'imdb': 'tt7888964'}
 
@@ -108,18 +109,28 @@ def install():
 
     class File(object):
         def __init__(self, path, mode='r'):
-            self.path, self.mode = path, mode
-        def readBytes(self):
+            self.path, self.mode, self.pos = path, mode, 0
+        def readBytes(self, numbytes=0):
             if self.path in S.unreadable:
                 raise IOError('read failed')
-            return S.contents.get(self.path, b'old subtitle')
+            data = S.contents.get(self.path, b'old subtitle')
+            if not numbytes:                       # "the whole file by its stat size": 0 for a path Kodi's NFS cached stale
+                return b'' if self.path in S.stale else data
+            chunk = data[self.pos:self.pos + numbytes]
+            self.pos += len(chunk)
+            return chunk
         def write(self, data):
-            S.contents[self.path] = data
+            S.contents[self.path] = bytes(data)
             S.written.append(self.path)
             S.existing.add(self.path)
             return True
         def close(self): pass
     xbmcvfs.File = File
+
+    class Stat(object):
+        def __init__(self, path): self.path = path
+        def st_size(self): return 0 if self.path in S.stale else len(S.contents.get(self.path, b'old subtitle'))
+    xbmcvfs.Stat = Stat
     xbmcvfs.mkdirs = lambda d: True
 
     for name, mod in (('xbmc', xbmc), ('xbmcaddon', xbmcaddon), ('xbmcgui', xbmcgui), ('xbmcplugin', xbmcplugin), ('xbmcvfs', xbmcvfs)):
