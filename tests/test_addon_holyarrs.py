@@ -187,6 +187,43 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(S.items[-1][0], local)
         self.assertEqual(S.contents[local], S.contents[share])
 
+    SR_SHARE = '/media/movies/Nobody (2021)/Nobody (2021).sr.srt'
+    SR_LOCAL = 'special://temp/service.subtitles.holyarrs/Nobody (2021).sr.srt'
+    CYRILLIC = u'1\n00:00:01,000 --> 00:00:02,000\nЉубав и ђак\n'.encode('utf-8')
+
+    def download_sr(self, lang='sr', content=None):
+        S.existing = {self.SR_SHARE}
+        S.contents = {self.SR_SHARE: self.CYRILLIC if content is None else content}
+        handler(self.query(result(lang)), FakeClient(saved='Nobody (2021)/Nobody (2021).sr.srt')).do()
+
+    def test_a_cyrillic_serbian_subtitle_reaches_kodi_in_latin_and_the_saved_file_is_left_alone(self):
+        self.download_sr()
+        self.assertEqual(S.items[-1][0], self.SR_LOCAL)
+        self.assertEqual(S.contents[self.SR_LOCAL].decode('utf-8'), u'1\n00:00:01,000 --> 00:00:02,000\nLjubav i đak\n')
+        self.assertEqual(S.contents[self.SR_SHARE], self.CYRILLIC)          # HolyArrs' own file is untouched
+        self.assertNotIn(self.SR_SHARE, S.written)
+
+    def test_the_setting_turns_it_off(self):
+        S.settings['serbian_to_latin'] = 'false'
+        self.download_sr()
+        self.assertEqual(S.contents[self.SR_LOCAL], self.CYRILLIC)
+
+    def test_other_languages_are_never_converted(self):
+        self.download_sr(lang='ru')
+        self.assertEqual(S.contents[self.SR_LOCAL], self.CYRILLIC)
+
+    def test_a_serbian_subtitle_that_is_already_latin_is_passed_through(self):
+        latin = u'1\n00:00:01,000 --> 00:00:02,000\nLjubav i đak\n'.encode('cp1250')
+        self.download_sr(content=latin)
+        self.assertEqual(S.contents[self.SR_LOCAL], latin)
+
+    def test_a_conversion_failure_still_hands_kodi_the_subtitle(self):
+        with mock.patch.object(addon, 'subtitle_to_latin', side_effect=ValueError('boom')):
+            self.download_sr()
+        self.assertEqual(S.items[-1][0], self.SR_LOCAL)
+        self.assertEqual(S.contents[self.SR_LOCAL], self.CYRILLIC)
+        self.assertTrue(any('Could not convert' in m for m in S.log))
+
     def test_download_waits_for_the_share_then_gives_up(self):
         c = FakeClient()
         with mock.patch.object(addon.time, 'sleep'):

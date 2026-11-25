@@ -29,7 +29,7 @@ class State(object):
     @classmethod
     def reset(cls):
         cls.settings = {'holyarrs_url': 'http://h', 'holyarrs_apikey': 'k', 'verify_ssl': 'true',
-                        'download_wait_seconds': '1', 'debug_logging': 'false'}
+                        'download_wait_seconds': '1', 'debug_logging': 'false', 'serbian_to_latin': 'true'}
         cls.notifications, cls.log, cls.items, cls.existing = [], [], [], set()
         cls.files, cls.deleted, cls.written, cls.contents, cls.unreadable, cls.stale = {}, [], [], {}, set(), set()
         cls.playing = {'type': 'movie', 'file': '/media/movies/Nobody (2021)/Nobody (2021).mkv',

@@ -21,6 +21,8 @@ repository's README), or zip this folder and use *Add-ons -> Install from zip fi
 - **HolyArrs API key** - HolyArrs `Settings > API > Make key`, a key with the **all** scope (the add-on reads
   titles, saves subtitles and sets language wishes). Make a separate key for Kodi.
 - **Verify SSL certificate** - turn off only for a self-signed certificate you cannot install.
+- **Show Serbian subtitles in Latin script** (on by default) - turns a Serbian subtitle written in Cyrillic into
+  Latin letters before Kodi uses it (see *Serbian Cyrillic to Latin* below).
 - **Seconds to wait for the saved subtitle to appear** - how long to wait for a network share to show the file.
 - **Enable debug logging** - verbose request lines in `kodi.log`.
 
@@ -57,6 +59,15 @@ repository's README), or zip this folder and use *Add-ons -> Install from zip fi
   it (in chunks, retrying, also with `//` collapsed in the path) to `special://temp/service.subtitles.holyarrs/` and hands Kodi that local file. Kodi's own copy of the file
   from some NFS shares failed ("Saving of subtitle nfs://... to special://temp/... failed"). If the add-on cannot
   read the file either, it logs why (`Could not copy ... to a local file: read 0 bytes (stat sizes seen: ...)`) and falls back to the share path.
+- **Serbian Cyrillic to Latin (1.0.5):** some subtitle sites label Cyrillic subtitles as plain Serbian (`sr`).
+  When the picked result's language is Serbian and the setting is on, the local copy the add-on hands Kodi is
+  converted letter for letter to Latin (`Љубав` -> `Ljubav`; `Lj`, `Nj`, `Dž` stay upper case inside all-caps
+  words) and written as UTF-8. Nothing else is touched: other languages, and Serbian subtitles that are already
+  Latin (including old Windows-1250 files), pass through unchanged. UTF-8, UTF-16 and Windows-1251 Cyrillic
+  files are read. The file HolyArrs saved beside the video is **not** modified (HolyArrs keeps its own record of
+  it); whether Kodi also writes the converted copy next to the video depends on Kodi's *Subtitle storage
+  location* setting. If the add-on cannot stage a local copy (see above), Kodi gets the share path and the
+  subtitle stays as saved. A conversion error never costs you the subtitle: it is logged and the original is used.
 - **Error messages:** "HolyArrs refused the API key" (401/403), "HolyArrs answered with an error (see the Kodi
   log)" (other HTTP errors, with the status and HolyArrs' message in the log), "Could not reach HolyArrs"
   (connection failures only).

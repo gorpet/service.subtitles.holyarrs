@@ -28,6 +28,7 @@ from holyarrs import (  # noqa: E402
     HolyArrsClient, HolyArrsNotConfigured, HolyArrsItemNotFound, HolyArrsAuthError, HolyArrsHTTPError,
     is_foreign_file_conflict, conflicting_subtitles,
 )
+from translit import is_serbian, subtitle_to_latin  # noqa: E402
 
 try:
     import requests
@@ -255,7 +256,7 @@ class ActionHandler(object):
             self.notify(get_local_str(32003))
             self.add_subtitle_dir_item('')
             return
-        self.add_subtitle_dir_item(self._stage_locally(subtitle_path, name) or subtitle_path)
+        self.add_subtitle_dir_item(self._stage_locally(subtitle_path, name, str(result.get('language', ''))) or subtitle_path)
 
     def _read_share_file(self, path):
         """Read a file from the share in chunks (not 'the whole file by its stat size', which Kodi's NFS client can
@@ -293,16 +294,36 @@ class ActionHandler(object):
                 time.sleep(1)
         raise IOError('read 0 bytes (stat sizes seen: {0}; tried {1})'.format(', '.join(sizes), ', '.join(paths)))
 
-    def _stage_locally(self, subtitle_path, name):
+    def _serbian_to_latin_enabled(self):
+        try:
+            return __addon__.getSettingBool('serbian_to_latin')
+        except Exception:
+            return __addon__.getSetting('serbian_to_latin') != 'false'
+
+    def _latinize(self, data, language, name):
+        """A Serbian subtitle written in Cyrillic becomes Latin (when the setting is on). Only the local copy Kodi gets
+        is changed; the file HolyArrs saved beside the video is left exactly as HolyArrs wrote it."""
+        if not is_serbian(language) or not self._serbian_to_latin_enabled():
+            return data
+        try:
+            converted, changed = subtitle_to_latin(data)
+        except Exception as exc:  # noqa: BLE001 - a conversion problem must never cost the user the subtitle
+            self.log.warning('Could not convert {0} to Latin, using it as saved: {1}'.format(name, exc))
+            return data
+        self.log.debug('{0}: {1}'.format(name, 'converted from Cyrillic to Latin' if changed else 'no Cyrillic letters, left as saved'))
+        return converted
+
+    def _stage_locally(self, subtitle_path, name, language=''):
         """Copy the saved subtitle from the share to a local folder and hand Kodi THAT path. Kodi copies the file the
         add-on names into its own temp folder, and on some NFS shares that copy fails right after HolyArrs wrote the
         file ('Saving of subtitle nfs://... to special://temp/... failed'). Reading it here puts the real reason in the
-        log, and Kodi then copies a local file. Returns the local path, or '' (Kodi then gets the share path)."""
+        log, and Kodi then copies a local file. Serbian Cyrillic is turned into Latin on the way (see _latinize).
+        Returns the local path, or '' (Kodi then gets the share path)."""
         try:
             folder = xbmcvfs.translatePath('special://temp/' + __addonid__ + '/')
             xbmcvfs.mkdirs(folder)
             target = folder + name
-            data = self._read_share_file(subtitle_path)
+            data = self._latinize(self._read_share_file(subtitle_path), language, name)
             out = xbmcvfs.File(target, 'w')
             try:
                 written = out.write(bytearray(data))

@@ -49,6 +49,14 @@ msgctxt "#30018"
 msgid "Created in HolyArrs under Settings > API (a key with the all scope)"
 msgstr ""
 
+msgctxt "#30019"
+msgid "Show Serbian subtitles in Latin script"
+msgstr ""
+
+msgctxt "#30020"
+msgid "Turns a Serbian subtitle written in Cyrillic into Latin letters (Љубав -> Ljubav) before Kodi uses it. Other languages and subtitles that are already Latin are not touched"
+msgstr ""
+
 msgctxt "#32000"
 msgid "Unknown action"
 msgstr ""

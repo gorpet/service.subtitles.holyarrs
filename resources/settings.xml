@@ -22,6 +22,11 @@
                     <default>true</default>
                     <control type="toggle"/>
                 </setting>
+                <setting id="serbian_to_latin" type="boolean" label="30019" help="30020">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
                 <setting id="download_wait_seconds" type="integer" label="30004" help="30014">
                     <level>1</level>
                     <default>8</default>
