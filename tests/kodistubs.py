@@ -20,6 +20,7 @@ class State(object):
     files = {}          # folder -> file names xbmcvfs.listdir() returns
     deleted = []        # xbmcvfs.delete calls
     written = []        # xbmcvfs.File(...,'w').write targets
+    unreadable = set()  # paths whose xbmcvfs.File read raises
     contents = {}       # path -> bytes for xbmcvfs.File reads/writes
     playing = {}
     langs = {'croatian': 'hr', 'english': 'en', 'serbian': 'sr', 'bosnian': 'bs'}
@@ -29,7 +30,7 @@ class State(object):
         cls.settings = {'holyarrs_url': 'http://h', 'holyarrs_apikey': 'k', 'verify_ssl': 'true',
                         'download_wait_seconds': '1', 'debug_logging': 'false'}
         cls.notifications, cls.log, cls.items, cls.existing = [], [], [], set()
-        cls.files, cls.deleted, cls.written, cls.contents = {}, [], [], {}
+        cls.files, cls.deleted, cls.written, cls.contents, cls.unreadable = {}, [], [], {}, set()
         cls.playing = {'type': 'movie', 'file': '/media/movies/Nobody (2021)/Nobody (2021).mkv',
                        'title': 'Nobody', 'year': 2021, 'imdb': 'tt7888964'}
 
@@ -108,7 +109,10 @@ def install():
     class File(object):
         def __init__(self, path, mode='r'):
             self.path, self.mode = path, mode
-        def readBytes(self): return S.contents.get(self.path, b'old subtitle')
+        def readBytes(self):
+            if self.path in S.unreadable:
+                raise IOError('read failed')
+            return S.contents.get(self.path, b'old subtitle')
         def write(self, data):
             S.contents[self.path] = data
             S.written.append(self.path)
@@ -116,6 +120,7 @@ def install():
             return True
         def close(self): pass
     xbmcvfs.File = File
+    xbmcvfs.mkdirs = lambda d: True
 
     for name, mod in (('xbmc', xbmc), ('xbmcaddon', xbmcaddon), ('xbmcgui', xbmcgui), ('xbmcplugin', xbmcplugin), ('xbmcvfs', xbmcvfs)):
         sys.modules[name] = mod

@@ -163,7 +163,16 @@ class DownloadTests(unittest.TestCase):
         c = FakeClient()
         handler(self.query(), c).do()
         self.assertEqual(c.calls, [('choose', 11, {'site': 'Titlovi', 'key': '2'})])
+        # Kodi is handed a local copy, not the share path (its own copy from some NFS shares fails)
+        self.assertEqual(S.items[-1][0], 'special://temp/service.subtitles.holyarrs/Nobody (2021).hr.srt')
+        self.assertEqual(S.contents['special://temp/service.subtitles.holyarrs/Nobody (2021).hr.srt'], b'old subtitle')
+
+    def test_if_the_share_file_cannot_be_read_kodi_gets_the_share_path_and_the_log_says_why(self):
+        S.existing = {'/media/movies/Nobody (2021)/Nobody (2021).hr.srt'}
+        S.unreadable = {'/media/movies/Nobody (2021)/Nobody (2021).hr.srt'}
+        handler(self.query(), FakeClient()).do()
         self.assertEqual(S.items[-1][0], '/media/movies/Nobody (2021)/Nobody (2021).hr.srt')
+        self.assertTrue(any('Could not copy' in m and 'read failed' in m for m in S.log))
 
     def test_download_waits_for_the_share_then_gives_up(self):
         c = FakeClient()
@@ -196,12 +205,12 @@ class DownloadTests(unittest.TestCase):
                 mock.patch.object(addon, 'get_local_str', lambda i: 'replace: {0}' if i == 32012 else 'str%d' % i):
             handler(self.query(), c).do()
         self.assertEqual(S.deleted, [self.DIR + 'Nobody (2021).hr.srt'])
-        self.assertEqual(S.written, [])                                  # nothing put back: the save worked
+        self.assertNotIn(self.DIR + 'Nobody (2021).hr.srt', S.written)    # the old one was not put back: the save worked
         self.assertEqual([x[0] for x in c.calls], ['choose', 'choose'])
         self.assertIn('Nobody (2021).hr.srt', dialog.yesno.call_args[0][1])
         self.assertNotIn('.en.srt', dialog.yesno.call_args[0][1])        # only this language
         self.assertNotIn('Other (2020)', dialog.yesno.call_args[0][1])   # only this video
-        self.assertEqual(S.items[-1][0], self.DIR + 'Nobody (2021).hr.srt')
+        self.assertEqual(S.items[-1][0], 'special://temp/service.subtitles.holyarrs/Nobody (2021).hr.srt')
 
     def test_saying_no_leaves_the_old_subtitle_alone(self):
         c, dialog = self.replace_setup(answer=False)

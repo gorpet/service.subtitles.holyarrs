@@ -255,7 +255,36 @@ class ActionHandler(object):
             self.notify(get_local_str(32003))
             self.add_subtitle_dir_item('')
             return
-        self.add_subtitle_dir_item(subtitle_path)
+        self.add_subtitle_dir_item(self._stage_locally(subtitle_path, name) or subtitle_path)
+
+    def _stage_locally(self, subtitle_path, name):
+        """Copy the saved subtitle from the share to a local folder and hand Kodi THAT path. Kodi copies the file the
+        add-on names into its own temp folder, and on some NFS shares that copy fails right after HolyArrs wrote the
+        file ('Saving of subtitle nfs://... to special://temp/... failed'). Reading it here puts the real error in the
+        log, and Kodi then copies a local file. Returns the local path, or '' (Kodi then gets the share path)."""
+        try:
+            folder = xbmcvfs.translatePath('special://temp/' + __addonid__ + '/')
+            xbmcvfs.mkdirs(folder)
+            target = folder + name
+            source = xbmcvfs.File(subtitle_path)
+            try:
+                data = source.readBytes()
+            finally:
+                source.close()
+            if not data:
+                raise IOError('read 0 bytes')
+            out = xbmcvfs.File(target, 'w')
+            try:
+                written = out.write(data)
+            finally:
+                out.close()
+            if not written:
+                raise IOError('could not write {0}'.format(target))
+            self.log.debug('Staged {0} ({1} bytes) at {2}'.format(subtitle_path, len(data), target))
+            return target
+        except Exception as exc:  # noqa: BLE001
+            self.log.error('Could not copy {0} to a local file: {1}'.format(subtitle_path, exc))
+            return ''
 
     def add_subtitle_dir_item(self, subtitle_path):
         list_item = xbmcgui.ListItem(label=subtitle_path)
